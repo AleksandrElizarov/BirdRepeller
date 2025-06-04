@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = 'birdrepeller.ino.hex'
+elf = 'birdrepeller.ino.elf'
