@@ -27,7 +27,7 @@ void setup() {
 }
 
 void loop() {
-  long newPos = encoder.read() / 4; // Делим, чтобы шаг был адекватным
+  long newPos = encoder.read() / 2; // Делим, чтобы шаг был адекватным
 
   if (newPos != lastPos) {
     value = constrain(newPos + 1, 1, 100); // +1, чтобы старт с 1
