@@ -1,5 +1,6 @@
 #include <Encoder.h>
 #include <TM1637Display.h>
+#include <EEPROM.h>
 
 // Пины индикатора TM1637
 #define DISP_CLK 7
@@ -18,6 +19,12 @@
 Encoder encoder(ENC_DT, ENC_CLK);
 TM1637Display display(DISP_CLK, DISP_DIO);
 
+byte eeprom_delay_maximum = 0; //Адрес ПЗУ для большой задержки между выхлопами
+byte eeprom_delay_minimum = 1; //Адрес ПЗУ для малой задержки для наполнения
+byte var_delay_maximum = 0;   // Переменная для большой задержки между выхлопами
+byte var_delay_minimum = 0;  // Переменная для малой задержки для наполнения
+byte rezim = 0; // Режим для изменения: 0 - большой задержки, 1 - малой задержки
+
 
 void setup() {
   pinMode(ENC_SW, INPUT_PULLUP);
@@ -32,13 +39,33 @@ void setup() {
   pinMode(SIRENA, OUTPUT);
   digitalWrite(SIRENA, LOW);
 
-  
+  var_delay_maximum = EEPROM.read(eeprom_delay_maximum);
+  var_delay_minimum = EEPROM.read(eeprom_delay_minimum);
+
+  var_delay_maximum = constrain(var_delay_maximum, 1, 60);
+  var_delay_minimum = constrain(var_delay_minimum, 1, 10);
+
+  encoder.write(var_delay_maximum);
+  display.showNumberDec(var_delay_maximum);
+  byte rezim = 0; 
+
 }
 
 void loop() {
-  long newPos = encoder.read() / 2; // Делим, чтобы шаг был адекватным
-  if(newPos > 5) {digitalWrite(VALVE, HIGH); display.showNumberDec(newPos);}
-  if(newPos > 10) {digitalWrite(FIRE, HIGH); display.showNumberDec(newPos);}
-  if(newPos > 15) {digitalWrite(SIRENA, HIGH); display.showNumberDec(newPos);}
+  long var_encoder = encoder.read(); // Делим, чтобы шаг был адекватным
+
+  if (rezim == 0){
+    if(var_encoder != var_delay_maximum){
+      display.showNumberDec(var_encoder);
+
+    }
+
+
+  }
+
+  
+
+
+
 
 }
