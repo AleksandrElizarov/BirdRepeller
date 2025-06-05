@@ -50,6 +50,9 @@ void setup() {
   var_delay_maximum = constrain(var_delay_maximum, 1, 60);
   var_delay_minimum = constrain(var_delay_minimum, 1, 10);
 
+  delay(50);
+  oldPosition = encoder.read()/step_encoder;
+
   oldTime = millis();
 
 } //setup()
