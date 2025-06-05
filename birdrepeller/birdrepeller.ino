@@ -45,17 +45,21 @@ void setup() {
   var_delay_maximum = constrain(var_delay_maximum, 1, 60);
   var_delay_minimum = constrain(var_delay_minimum, 1, 10);
 
-  encoder.write(var_delay_maximum);
+  encoder.write(var_delay_maximum*2);
   display.showNumberDec(var_delay_maximum);
   byte rezim = 0; 
 
 }
 
 void loop() {
-  long var_encoder = encoder.read(); // Делим, чтобы шаг был адекватным
+  long var_encoder = encoder.read()/2; // Делим, чтобы шаг был адекватным
 
   if (rezim == 0){
     if(var_encoder != var_delay_maximum){
+      var_encoder = constrain(var_encoder, 1, 60);
+      if(var_encoder > 60){encoder.write(60);}
+      if(var_encoder < 0){encoder.write();}
+
       display.showNumberDec(var_encoder);
 
     }
