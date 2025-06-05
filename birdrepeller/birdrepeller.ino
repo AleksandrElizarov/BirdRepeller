@@ -19,6 +19,9 @@
 Encoder encoder(ENC_DT, ENC_CLK);
 TM1637Display display(DISP_CLK, DISP_DIO);
 
+long oldPosition  = -999; //
+byte step_encoder = 2; //
+
 byte eeprom_delay_maximum = 0; //Адрес ПЗУ для большой задержки между выхлопами
 byte eeprom_delay_minimum = 1; //Адрес ПЗУ для малой задержки для наполнения
 byte var_delay_maximum = 0;   // Переменная для большой задержки между выхлопами
@@ -45,22 +48,29 @@ void setup() {
   var_delay_maximum = constrain(var_delay_maximum, 1, 60);
   var_delay_minimum = constrain(var_delay_minimum, 1, 10);
 
-  encoder.write(var_delay_maximum*2);
   display.showNumberDec(var_delay_maximum);
   byte rezim = 0; 
 
 }
 
 void loop() {
-  long var_encoder = encoder.read()/2; // Делим, чтобы шаг был адекватным
+  long newPosition = encoder.read()/step_encoder; // Делим, чтобы шаг был адекватным
 
   if (rezim == 0){
-    if(var_encoder != var_delay_maximum){
-      var_encoder = constrain(var_encoder, 1, 60);
-      if(var_encoder > 60){encoder.write(60);}
-      if(var_encoder < 0){encoder.write();}
-
-      display.showNumberDec(var_encoder);
+    if(newPosition != oldPosition){
+      //Вращение УВЕЛИЧЕНИЕ
+      if(newPosition > oldPosition){
+        oldPosition = newPosition;
+        var_delay_maximum = var_delay_maximum + 1;
+        if(var_delay_maximum >= 60){var_delay_maximum = 60;}
+      }
+      //Вращение УМЕНЬШЕНИЕ
+      if(newPosition < oldPosition){
+        oldPosition = newPosition;
+        var_delay_maximum = var_delay_maximum - 1;
+        if(var_delay_maximum <= 1){var_delay_maximum = 1;}
+      }
+      display.showNumberDec(var_delay_maximum);
 
     }
 
