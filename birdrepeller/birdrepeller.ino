@@ -25,10 +25,12 @@ unsigned long oldTime = 0; // Хранение стартового времен
 
 byte eeprom_delay_maximum = 0; //Адрес ПЗУ для большой задержки между выхлопами
 byte eeprom_delay_minimum = 1; //Адрес ПЗУ для малой задержки для наполнения
+byte eeprom_delay_sirena = 2; //Адрес ПЗУ для малой задержки для наполнения
+
 byte var_delay_maximum = 0;   // Переменная для большой задержки между выхлопами
 byte var_delay_minimum = 0;  // Переменная для малой задержки для наполнения
-byte delay_sec_sirena_on = 5; // Задержка для работы сирены
-byte rezim = 1; // Режим для изменения: 1 - большой задержки, 2 - малой задержки
+byte var_delay_sirena = 0; // Задержка для работы сирены
+byte rezim = 1; // Режим для изменения: 1 - большой задержки(пауза между выхлопами), 2 - малой задержки (наполнения камеры), 3 - задержка сирены(сирена включена)
 
 
 void setup() {
@@ -46,9 +48,11 @@ void setup() {
 
   var_delay_maximum = EEPROM.read(eeprom_delay_maximum);
   var_delay_minimum = EEPROM.read(eeprom_delay_minimum);
+  var_delay_sirena  = EEPROM.read(eeprom_delay_sirena);
 
   var_delay_maximum = constrain(var_delay_maximum, 1, 60);
-  var_delay_minimum = constrain(var_delay_minimum, 1, 10);
+  var_delay_minimum = constrain(var_delay_minimum, 1, 15);
+  var_delay_sirena = constrain(var_delay_sirena, 1, 15);
 
   delay(50);
   oldPosition = encoder.read()/step_encoder;
@@ -85,7 +89,7 @@ void loop() {
       //Вращение УВЕЛИЧЕНИЕ
       if(newPosition > oldPosition){
         var_delay_minimum = var_delay_minimum + 1;
-        if(var_delay_minimum >= 10){var_delay_minimum = 10;}
+        if(var_delay_minimum >= 15){var_delay_minimum = 15;}
       }
       //Вращение УМЕНЬШЕНИЕ
       if(newPosition < oldPosition){
@@ -95,7 +99,25 @@ void loop() {
       oldPosition = newPosition;
     }
     showFormattedValueDisplayDefault(rezim, var_delay_minimum);
-  } 
+  }
+
+
+  if (rezim == 3){
+    if(newPosition != oldPosition){
+      //Вращение УВЕЛИЧЕНИЕ
+      if(newPosition > oldPosition){
+        var_delay_sirena = var_delay_sirena + 1;
+        if(var_delay_sirena >= 15){var_delay_sirena = 15;}
+      }
+      //Вращение УМЕНЬШЕНИЕ
+      if(newPosition < oldPosition){
+        var_delay_sirena = var_delay_sirena - 1;
+        if(var_delay_sirena <= 1){var_delay_sirena = 1;}
+      }
+      oldPosition = newPosition;
+    }
+    showFormattedValueDisplayDefault(rezim, var_delay_sirena);
+  }    
 
   /////     Обслуживание КНОПКИ   /////
   if(buttonPressed){
@@ -112,16 +134,24 @@ void loop() {
         EEPROM.update(eeprom_delay_minimum, var_delay_minimum);
         delay(1000);
       }
+      if(rezim == 3){
+        showFormattedValueDisplaySafe(rezim, var_delay_sirena);
+        EEPROM.update(eeprom_delay_sirena, var_delay_sirena);
+        delay(1000);
+      }      
     } else {
       if(rezim == 1){
         rezim = 2;
         delay(1000);
       }else if(rezim == 2){
+        rezim = 3;
+        delay(1000);
+      }else if(rezim == 3){
         rezim = 1;
         delay(1000);
       }
-    }
-  } 
+    } //else
+  } //if(buttonPressed)
 
   /////   Логика наполнеия газом и искра   /////
   if((newTime - oldTime) > (var_delay_maximum * 60000)){
@@ -130,7 +160,7 @@ void loop() {
     digitalWrite(VALVE, LOW);
 
     digitalWrite(SIRENA, HIGH);
-    delay(delay_sec_sirena_on * 1000);
+    delay(var_delay_sirena * 1000);
     digitalWrite(SIRENA, LOW);
 
     digitalWrite(FIRE, HIGH);
@@ -184,6 +214,24 @@ void showFormattedValueDisplayDefault(byte rezim, int var) {
         data[3] = display.encodeDigit(units);
     }
   }
+  if(rezim == 3){
+    if (var < 10) {
+       // Режим "3--x"
+      data[0] = display.encodeDigit(3);
+      data[1] = 0x40; // '-'
+      data[2] = 0x40; // '-'
+      data[3] = display.encodeDigit(var);
+    } else {
+       // Режим "3-xx"
+      int tens = var / 10;
+      int units = var % 10;
+
+        data[0] = display.encodeDigit(3);
+        data[1] = 0x40; // '-'
+        data[2] = display.encodeDigit(tens);
+        data[3] = display.encodeDigit(units);
+    }
+  }  
 display.setSegments(data);
 } 
 
@@ -227,5 +275,23 @@ void showFormattedValueDisplaySafe(byte rezim, int var) {
         data[3] = display.encodeDigit(units);
     }
   }
+  if(rezim == 3){
+    if (var < 10) {
+       // Режим "3HHx"
+      data[0] = display.encodeDigit(3);
+      data[1] = 0x76; // это символ 'H'
+      data[2] = 0x76; // это символ 'H'
+      data[3] = display.encodeDigit(var);
+    } else {
+       // Режим "3Hxx"
+      int tens = var / 10;
+      int units = var % 10;
+
+        data[0] = display.encodeDigit(3);
+        data[1] = 0x76; // это символ 'H'
+        data[2] = display.encodeDigit(tens);
+        data[3] = display.encodeDigit(units);
+    }
+  }  
 display.setSegments(data);
 } 
